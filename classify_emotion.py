@@ -174,53 +174,17 @@ def eval():
 
 
 
-if __name__ == '__main__':
-  # Read command line arguments
-  parser = argparse.ArgumentParser(description='Train emotion classification model.')
 
-  parser.add_argument('--max_len', type=int, default=32, help='Maximum input length.')
-  parser.add_argument('--batch_size', type=int, default=16, help='Batch size for training.')
-  parser.add_argument('--emotion', choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'], default='hate', help='Emotion to be classified.')
-
-  parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train for.')
-  parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate.')
-  parser.add_argument('--device', choices=['cpu', 'cuda'], default='cpu', help='Whether to use CPU or GPU.')
-  parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
-
-  parser.add_argument('--tasks_selected', type=str, default=["offensive", "sarcasm", "hate"],
-                      help='the task names which are selected')
-
-  parser.add_argument('--num_task_eachtime', type=int, default=1,
-                      help='the number of task which is select')
-  parser.add_argument('--num_sample_pertask', type=int, default=20, help='Number of epochs to train for.')
-
-
-
-  args = parser.parse_args()
-
-  PRE_TRAINED_MODEL_NAME = 'roberta-base'
-
-  # Check device
-  if args.device == 'cuda' and not torch.cuda.is_available():
-    print("No GPU available. Using CPU.")
-    args.device = 'cpu'
+def main(args):
 
   # Reproducibility
   torch.manual_seed(args.seed)
   torch.backends.cudnn.deterministic = True
 
   # Load metalearning data
-  tokenizer = RobertaTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
-
+  tokenizer = RobertaTokenizer.from_pretrained(args.bert_name)
   train_data, val_data, test_data = load_emotion_data(args.emotion, args.seed)
 
-
-  # Tokenizer
-  tokenizer = RobertaTokenizer.from_pretrained(PRE_TRAINED_MODEL_NAME)
-
-  # With fixed K for all tasks, and batch size = K, this means one episode per batch.
-  # FIXME: do eval on the query set, each episode
-  # Get dataloaders
   train_data_loader = create_data_loader(train_data, tokenizer, args.max_len, args.batch_size, args)
   val_data_loader = create_data_loader(val_data, tokenizer, args.max_len, args.batch_size, args)
   test_data_loader = create_data_loader(test_data, tokenizer, args.max_len, args.batch_size, args)
@@ -230,7 +194,38 @@ if __name__ == '__main__':
   print(f'n_classes = {n_classes}')
 
   # Instantiate BERT model
-  model = EmoClassifier(PRE_TRAINED_MODEL_NAME, n_classes).to(args.device)
+  model = EmoClassifier(args.bert_name, n_classes).to(args.device)
 
   # Start training
   train(model, train_data_loader, val_data_loader, args)
+
+if __name__ == '__main__':
+  # Read command line arguments
+  parser = argparse.ArgumentParser(description='Train emotion classification model.')
+
+  # device
+  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+  parser.add_argument('--device', default = device, type=str,
+                      help='the device name')
+  parser.add_argument('--max_len', type=int, default=32, help='Maximum input length.')
+  parser.add_argument('--batch_size', type=int, default=16, help='Batch size for training.')
+  parser.add_argument('--emotion', choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'], default='hate', help='Emotion to be classified.')
+
+  parser.add_argument('--epochs', type=int, default=20, help='Number of epochs to train for.')
+  parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate.')
+  parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
+
+  parser.add_argument('--tasks_selected', type=str, default=["offensive", "sarcasm", "hate"],
+                      help='the task names which are selected')
+
+  parser.add_argument('--num_task_eachtime', type=int, default=1,
+                      help='the number of task which is select')
+  parser.add_argument('--num_sample_pertask', type=int, default=20, help='Number of epochs to train for.')
+
+  parser.add_argument('--bert_name', default = 'roberta-base', type=str,
+                      help='the bert name')
+
+
+  args = parser.parse_args()
+
+  main(args)
