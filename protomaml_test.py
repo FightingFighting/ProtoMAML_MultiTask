@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from transformers import RobertaTokenizer, AdamW, get_linear_schedule_with_warmup
-from data import load_emotion_data, create_data_loader, creat_metadataLoader
+from data import load_emotion_data, create_data_loader, create_metadataLoader
 
 from models.maml import MAML_framework
 from models.EmoClassifier import EmoClassifier
@@ -18,7 +18,7 @@ def main(opts):
     # Load metalearning data
     tokenizer = RobertaTokenizer.from_pretrained(opts.bert_name)
     train_data, val_data, test_data = load_emotion_data("meta_all", opts.seed)
-    train_data_loader = creat_metadataLoader(train_data, tokenizer, opts.max_len, opts.tasks_selected, opts.num_task_eachtime, opts.num_sample_pertask, opts)
+    train_data_loader = create_metadataLoader(train_data, tokenizer, opts.max_len, opts.tasks_selected, opts.num_task_eachtime, opts.num_sample_pertask, opts)
 
     #build model
     classifier = EmoClassifier(opts.bert_name, opts.num_class)

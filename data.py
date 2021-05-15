@@ -338,7 +338,7 @@ def collation_fn_emo(inputs):
 
     return batch
 
-def creat_metadataLoader(dataset, tokenizer, max_len, tasks_selected, num_task_eachtime, num_sample_pertask, opts):
+def create_metadataLoader(dataset, tokenizer, max_len, tasks_selected, num_task_eachtime, num_sample_pertask, opts):
     tasks_dataloader = {}
     for emo in tasks_selected:
         dataset_emo = dataset[dataset['task'] == emo]
