@@ -55,11 +55,9 @@ if __name__ == "__main__":
                         help='the bert name')
     parser.add_argument('--max_len', default = 180, type=int,
                         help='the bert name')
-    parser.add_argument('--emotion', choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness'],
-                        default='fear', help='Emotion to be classified.')
     parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
 
-    parser.add_argument('--tasks_selected', type=str, default=["offensive", "sarcasm", "hate"],
+    parser.add_argument('--tasks_selected', type=str, default=["offensive", "sarcasm"],
                         help='the task names which are selected')
 
     parser.add_argument('--num_task_eachtime', type=int, default=3,
