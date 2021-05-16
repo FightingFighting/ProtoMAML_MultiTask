@@ -7,3 +7,4 @@ emoji==1.2.0
 torch==1.8.1
 transformers==4.5.1
 scikit_learn==0.24.2
+tensorboard
