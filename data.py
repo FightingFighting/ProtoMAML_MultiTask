@@ -350,33 +350,46 @@ def create_metadataLoader(dataset, tokenizer, max_len, tasks_selected, num_task_
     meatdata_loader = DataLoader(meatdata, batch_size=num_task_eachtime, num_workers=0, shuffle=True, collate_fn=collation_fn_meta)
     return meatdata_loader
 
+# def collation_fn_emo_meta(inputs):
+#     #split suport and query
+#     (tweet, input_ids, attention_mask, targets, task) = zip(*inputs)
+
+#     length = len(tweet)
+#     support_length = int(length/2)
+
+#     support = {
+#                 'tweet_text': tweet[0:support_length],
+#                 'input_ids': torch.stack(input_ids[0:support_length]),
+#                 'attention_mask': torch.stack(attention_mask[0:support_length]),
+#                 'targets': torch.stack(targets[0:support_length]),
+#                 'task': task[0:support_length]
+#               }
+
+#     query = {
+#                 'tweet_text': tweet[support_length:],
+#                 'input_ids': torch.stack(input_ids[support_length:]),
+#                 'attention_mask': torch.stack(attention_mask[support_length:]),
+#                 'targets': torch.stack(targets[support_length:]),
+#                 'task': task[support_length:]
+#             }
+
+#     return (support, query)
 def collation_fn_emo_meta(inputs):
-    #split suport and query
     (tweet, input_ids, attention_mask, targets, task) = zip(*inputs)
 
-    length = len(tweet)
-    support_length = int(length/2)
-
-    support = {
-                'tweet_text': tweet[0:support_length],
-                'input_ids': torch.stack(input_ids[0:support_length]),
-                'attention_mask': torch.stack(attention_mask[0:support_length]),
-                'targets': torch.stack(targets[0:support_length]),
-                'task': task[0:support_length]
-              }
-
-    query = {
-                'tweet_text': tweet[support_length:],
-                'input_ids': torch.stack(input_ids[support_length:]),
-                'attention_mask': torch.stack(attention_mask[support_length:]),
-                'targets': torch.stack(targets[support_length:]),
-                'task': task[support_length:]
+    return {
+                'tweet_text': tweet,
+                'input_ids': torch.stack(input_ids),
+                'attention_mask': torch.stack(attention_mask),
+                'targets': torch.stack(targets),
+                'task': task
             }
 
-    return (support, query)
+# def collation_fn_meta(inputs):
 
-
+#     return inputs
 def collation_fn_meta(inputs):
+    support = inputs[0]
+    query = inputs[1]
 
-    return inputs
-
+    return [(support, query)]
