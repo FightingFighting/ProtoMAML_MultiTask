@@ -138,17 +138,20 @@ def load_olid_data(seed):
 
 #READING tweeteval hate data
 def load_tweeteval_data(seed):
-    hate_train_text = pd.read_csv('data/tweeteval_hate/train_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
-    hate_train_labels = pd.read_csv('data/tweeteval_hate/train_labels.txt', sep='\t', header=None, names=['emotion_ind'])
+    hate_train_text = pd.read_csv('data/tweeteval_hate/train_text.txt', sep='\n', header=None, names=['tweet'], skip_blank_lines=False)
+    hate_train_labels = pd.read_csv('data/tweeteval_hate/train_labels.txt', sep='\n', header=None, names=['emotion_ind'])
     hate_train = hate_train_text.join(hate_train_labels)
+    hate_train.dropna(inplace=True)
 
-    hate_val_text = pd.read_csv('data/tweeteval_hate/val_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
-    hate_val_labels = pd.read_csv('data/tweeteval_hate/val_labels.txt', sep='\t', header=None, names=['emotion_ind'])
+    hate_val_text = pd.read_csv('data/tweeteval_hate/val_text.txt', sep='\n', header=None, names=['tweet'], skip_blank_lines=False)
+    hate_val_labels = pd.read_csv('data/tweeteval_hate/val_labels.txt', sep='\n', header=None, names=['emotion_ind'])
     hate_val = hate_val_text.join(hate_val_labels)
+    hate_val.dropna(inplace=True)
 
-    hate_test_text = pd.read_csv('data/tweeteval_hate/test_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
-    hate_test_labels = pd.read_csv('data/tweeteval_hate/test_labels.txt', sep='\t', header=None, names=['emotion_ind'])
+    hate_test_text = pd.read_csv('data/tweeteval_hate/test_text.txt', sep='\n', header=None, names=['tweet'], skip_blank_lines=False)
+    hate_test_labels = pd.read_csv('data/tweeteval_hate/test_labels.txt', sep='\n', header=None, names=['emotion_ind'])
     hate_test = hate_test_text.join(hate_test_labels)
+    hate_test.dropna(inplace=True)
 
     hate_train['emotion'] = hate_train['emotion_ind'].apply(to_emotion_hate)
     hate_val['emotion'] = hate_val['emotion_ind'].apply(to_emotion_hate)
