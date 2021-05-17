@@ -80,5 +80,5 @@ class ProtoMAML_framework(MAML_framework):
                 #update initial parameters
                 self.update_model_init_parameters(grads_batch_tasks)
 
-                print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
+                print("epoch:", epoch, "indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 

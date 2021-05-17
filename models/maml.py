@@ -50,7 +50,7 @@ class MAML_framework(nn.Module):
                 #update initial parameters
                 self.update_model_init_parameters(grads_batch_tasks)
 
-                print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
+                print("epoch:", epoch, "indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
 
     def train_episode(self, criterion, data_per_task, optimizer_task):
@@ -62,6 +62,13 @@ class MAML_framework(nn.Module):
         for i in range(self.args.train_step_per_episode):
             preds_support = self.classifier_episode(*x_support_set)
             loss_support = criterion(preds_support,y_support_set)
+            
+            # Print batch if loss is NaN
+            if loss_support != loss_support:
+                print("\nNAN LOSS!")
+                for s in x_support_set:
+                    print(list(s))
+                raise RuntimeError("NaN loss")
 
             optimizer_task.zero_grad()
             loss_support.backward()
