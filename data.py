@@ -7,6 +7,7 @@ import emoji
 import re
 import numpy as np
 from itertools import cycle
+import csv
 
 DATA_SEED = 3
 CONVERT_TO_BINARY = False
@@ -137,15 +138,15 @@ def load_olid_data(seed):
 
 #READING tweeteval hate data
 def load_tweeteval_data(seed):
-    hate_train_text = pd.read_csv('data/tweeteval_hate/train_text.txt', sep='\t', header=None, names=['tweet'])
+    hate_train_text = pd.read_csv('data/tweeteval_hate/train_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
     hate_train_labels = pd.read_csv('data/tweeteval_hate/train_labels.txt', sep='\t', header=None, names=['emotion_ind'])
     hate_train = hate_train_text.join(hate_train_labels)
 
-    hate_val_text = pd.read_csv('data/tweeteval_hate/val_text.txt', sep='\t', header=None, names=['tweet'])
+    hate_val_text = pd.read_csv('data/tweeteval_hate/val_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
     hate_val_labels = pd.read_csv('data/tweeteval_hate/val_labels.txt', sep='\t', header=None, names=['emotion_ind'])
     hate_val = hate_val_text.join(hate_val_labels)
 
-    hate_test_text = pd.read_csv('data/tweeteval_hate/test_text.txt', sep='\t', header=None, names=['tweet'])
+    hate_test_text = pd.read_csv('data/tweeteval_hate/test_text.txt', sep='\t', header=None, names=['tweet'], quoting=csv.QUOTE_NONE)
     hate_test_labels = pd.read_csv('data/tweeteval_hate/test_labels.txt', sep='\t', header=None, names=['emotion_ind'])
     hate_test = hate_test_text.join(hate_test_labels)
 
