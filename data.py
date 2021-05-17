@@ -323,7 +323,8 @@ def create_data_loader(df, tokenizer, max_len, batch_size, opts):
         ds,
         batch_size=batch_size,
         num_workers=0,
-        collate_fn=collation_fn_emo
+        collate_fn=collation_fn_emo,
+        shuffle=True,
     )
 
 def collation_fn_emo(inputs):
