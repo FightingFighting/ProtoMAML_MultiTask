@@ -194,8 +194,8 @@ def test(val_data_loader, args, loss_fn):
 
 def main(args):
   args.output_dir = os.path.join(args.output_dir,args.emotion)
-  os.makedirs(os.path.join(args.output_dir,"logs"))
-  os.makedirs(os.path.join(args.output_dir, "models"))
+  os.makedirs(os.path.join(args.output_dir,"logs"), exist_ok=True)
+  os.makedirs(os.path.join(args.output_dir, "models"), exist_ok=True)
   logging.basicConfig(filename=os.path.join(args.output_dir,"logs","output.log"),
                       level=logging.DEBUG,
                       format='%(asctime)s %(message)s')
