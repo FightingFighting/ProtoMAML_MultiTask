@@ -250,23 +250,36 @@ class MetaDataset(Dataset):
     def __init__(self, tasks_dataset, tasks_selected):
         self.tasks_selected = tasks_selected
         self.tasks_dataset = tasks_dataset
+
+        loaders_length = []
         self.tasks_dataset_iter={}
-        for t_name, dataloader  in self.tasks_dataset.items():
-            self.tasks_dataset_iter[t_name] = iter(dataloader)
+        for task_name, task_loaders in self.tasks_dataset.items():
+            class_loader={}
+            for class_name, loader in task_loaders.items():
+                loaders_length.append(len(loader))
+                class_loader[class_name]=iter(loader)
+            self.tasks_dataset_iter[task_name]=class_loader
+        self.max_length = max(loaders_length)
 
     def __len__(self):
-        return len(self.tasks_selected)
+
+        return self.max_length
 
     def __getitem__(self, idx):
-        task_name = self.tasks_selected[idx]
-        try:
-            sample_batch = next(self.tasks_dataset_iter[task_name])
-        except StopIteration:
-            self.tasks_dataset_iter[task_name] = iter(self.tasks_dataset[task_name])
-            sample_batch = next(self.tasks_dataset_iter[task_name])
+        sample_batch_all={}
+        for task_name, task_loaders in self.tasks_dataset_iter.items():
+            sapmle_batch_oneclass={}
+            for class_name, loader in task_loaders.items():
+                try:
+                    sample_batch = next(loader)
+                    sapmle_batch_oneclass[class_name]=sample_batch
+                except StopIteration:
+                    self.tasks_dataset_iter[task_name][class_name] = iter(self.tasks_dataset[task_name][class_name])
+                    sample_batch = next(self.tasks_dataset_iter[task_name][class_name])
+                    sapmle_batch_oneclass[class_name]=sample_batch
+            sample_batch_all[task_name]=sapmle_batch_oneclass
 
-        return sample_batch
-
+        return sample_batch_all
 
 class EmotionDataset(Dataset):
 
@@ -279,12 +292,6 @@ class EmotionDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_len = max_len
         self.opts = opts
-
-        # split dataset according to the class
-        self.dataset_classes={}
-        self.class_name = self.dataset.emotion.unique()
-        for c_n in self.class_name:
-            self.dataset_classes[c_n] = self.dataset[self.dataset["emotion"]==c_n]
 
     def __len__(self):
         return len(self.targets)
@@ -343,58 +350,69 @@ def collation_fn_emo(inputs):
 
     return batch
 
-def create_metadataLoader(dataset, tokenizer, max_len, tasks_selected, num_task_eachtime, num_sample_pertask, opts):
+def creat_metadataLoader(dataset, tokenizer, max_len, tasks_selected, num_sample_perclass, opts):
     tasks_dataloader = {}
     for emo in tasks_selected:
         dataset_emo = dataset[dataset['task'] == emo]
-        emo_dataset = EmotionDataset(dataset_emo, tokenizer, max_len, opts)
-        emo_dataloader = DataLoader(emo_dataset, batch_size=num_sample_pertask*2, num_workers=0, shuffle=True, collate_fn=collation_fn_emo_meta)
-        tasks_dataloader[emo] = emo_dataloader
+
+        # split dataset according to the class
+        class_name = dataset_emo.emotion.unique()
+        dataset_classes_loader = {}
+        for c_n in class_name:
+            dataset_oneclass = dataset_emo[dataset_emo["emotion"]==c_n]
+            emo_dataset_oneclass = EmotionDataset(dataset_oneclass, tokenizer, max_len, opts)
+            emo_dataloader = DataLoader(emo_dataset_oneclass, batch_size=num_sample_perclass, num_workers=0, shuffle=True)
+            dataset_classes_loader[c_n] = emo_dataloader
+
+        tasks_dataloader[emo] = dataset_classes_loader
 
     meatdata = MetaDataset(tasks_dataloader, tasks_selected)
-    meatdata_loader = DataLoader(meatdata, batch_size=num_task_eachtime, num_workers=0, shuffle=True, collate_fn=collation_fn_meta)
+    meatdata_loader = DataLoader(meatdata, batch_size=1, num_workers=0, shuffle=True, collate_fn=collation_fn_meta)
     return meatdata_loader
 
-# def collation_fn_emo_meta(inputs):
-#     #split suport and query
-#     (tweet, input_ids, attention_mask, targets, task) = zip(*inputs)
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def collation_fn_meta(batch_tasks):
 
-#     length = len(tweet)
-#     support_length = int(length/2)
+    batch_tasks_merge = {}
+    for task_name, data_task in batch_tasks[0].items():
+        support = {
+            'tweet_text': (),
+            'input_ids': torch.tensor([],dtype=torch.int64).to(device),
+            'attention_mask': torch.tensor([],dtype=torch.int64).to(device),
+            'targets': torch.tensor([],dtype=torch.int64).to(device),
+            'task': ()
+        }
 
-#     support = {
-#                 'tweet_text': tweet[0:support_length],
-#                 'input_ids': torch.stack(input_ids[0:support_length]),
-#                 'attention_mask': torch.stack(attention_mask[0:support_length]),
-#                 'targets': torch.stack(targets[0:support_length]),
-#                 'task': task[0:support_length]
-#               }
+        query = {
+            'tweet_text': (),
+            'input_ids': torch.tensor([],dtype=torch.int64).to(device),
+            'attention_mask': torch.tensor([],dtype=torch.int64).to(device),
+            'targets': torch.tensor([],dtype=torch.int64).to(device),
+            'task': ()
+        }
 
-#     query = {
-#                 'tweet_text': tweet[support_length:],
-#                 'input_ids': torch.stack(input_ids[support_length:]),
-#                 'attention_mask': torch.stack(attention_mask[support_length:]),
-#                 'targets': torch.stack(targets[support_length:]),
-#                 'task': task[support_length:]
-#             }
+        for class_name, data_task_oneClass in data_task.items():
+            (tweet, input_ids, attention_mask, targets, task) = data_task_oneClass
+            length = len(tweet)
+            support_length = int(length/2)
 
-#     return (support, query)
-def collation_fn_emo_meta(inputs):
-    (tweet, input_ids, attention_mask, targets, task) = zip(*inputs)
 
-    return {
-                'tweet_text': tweet,
-                'input_ids': torch.stack(input_ids),
-                'attention_mask': torch.stack(attention_mask),
-                'targets': torch.stack(targets),
-                'task': task
-            }
+            support['tweet_text'] = support['tweet_text']+tweet[0:support_length]
+            support['input_ids'] = torch.cat((support['input_ids'],input_ids[0:support_length]))
+            support['attention_mask'] = torch.cat((support['attention_mask'], attention_mask[0:support_length]))
+            support['targets'] = torch.cat((support['targets'], targets[0:support_length]))
+            support['task'] = support['task']+task[0:support_length]
 
-# def collation_fn_meta(inputs):
+            query['tweet_text'] = query['tweet_text']+tweet[support_length:]
+            query['input_ids'] = torch.cat((query['input_ids'],input_ids[support_length:]))
+            query['attention_mask'] = torch.cat((query['attention_mask'], attention_mask[support_length:]))
+            query['targets'] = torch.cat((query['targets'], targets[support_length:]))
+            query['task'] = query['task']+task[support_length:]
 
-#     return inputs
-def collation_fn_meta(inputs):
-    support = inputs[0]
-    query = inputs[1]
+        batch_tasks_merge[task_name]={
+                                      "support": support,
+                                      "query": query
+                                      }
 
-    return [(support, query)]
+    return batch_tasks_merge
+
