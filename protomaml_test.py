@@ -16,31 +16,11 @@ from models.protomaml import ProtoMAML_framework
 def main(opts):
 
     # Load metalearning data
-    # tokenizer = RobertaTokenizer.from_pretrained(opts.bert_name)
-    # train_data, val_data, test_data = load_emotion_data("meta_all", opts.seed)
-    # train_data_loader = creat_metadataLoader(train_data, tokenizer, opts.max_len, opts.tasks_selected, opts.num_task_eachtime, opts.num_sample_pertask, opts)
+    emotions_all = opts.emotion.split("&")
     tokenizer = RobertaTokenizer.from_pretrained(opts.bert_name)
     train_data, val_data, test_data = load_emotion_data("meta_all", opts.seed)
+    train_data_loader = creat_metadataLoader(train_data, tokenizer, opts.max_len, emotions_all, opts.num_sample_perclass, opts)
 
-    # Determine number of classes
-    n_classes=[]
-    emotions_all = opts.emotion.split("&")
-    train_data_loader = {}
-    val_data_loader = {}
-    test_data_loader = {}
-    for emo in emotions_all:
-        c_num = train_data[train_data['task'] == emo]['emotion_ind'].value_counts()
-        n_classes.append(len(c_num))
-
-        train_data_task = train_data[train_data['task'] == emo]
-        val_data_task = val_data[val_data['task'] == emo]
-        test_data_task = test_data[test_data['task'] == emo]
-
-        train_data_loader[emo] = create_data_loader(train_data_task, tokenizer, opts.max_len, opts.num_sample_pertask, opts)
-        val_data_loader[emo] = create_data_loader(val_data_task, tokenizer, opts.max_len, opts.num_sample_pertask, opts)
-        test_data_loader[emo]= create_data_loader(test_data_task, tokenizer, opts.max_len, opts.num_sample_pertask, opts)
-
-    print(f'n_classes = {n_classes}')
 
     #build model
     classifier = EmoClassifier(opts.bert_name, opts.num_class)
@@ -63,7 +43,7 @@ if __name__ == "__main__":
     parser.add_argument('--device', default = device, type=str,
                         help='the device name')
 
-    parser.add_argument('--num_epoch', default = 1000, type=int,
+    parser.add_argument('--num_epoch', default = 50, type=int,
                         help='Number of epoch')
     parser.add_argument('--num_class', default = 2, type=int,
                         help='Number of class')
@@ -80,7 +60,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
 
-    parser.add_argument('--num_sample_pertask', type=int, default=40, help='')
+    parser.add_argument('--num_sample_perclass', type=int, default=20, help='')
     parser.add_argument('--emotion', default="hate&offensive",
                         choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'],
                         help='Emotion to be classified.')
