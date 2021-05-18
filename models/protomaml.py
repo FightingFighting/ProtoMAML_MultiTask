@@ -64,42 +64,20 @@ class ProtoMAML_framework(MAML_framework):
         self.classifier_episode.fc_layer.weight.data = all_prototypes*2.0 #(num_class, dim_encoder_hidden)
         self.classifier_episode.fc_layer.bias.data = -1.0*all_prototypes.norm(dim=1)**2 #(num_class,)
 
-    def split_supportAndquery(self, dataset_all):
-        support_length = int(len(dataset_all['targets'])/2)
-        support = {
-            'tweet_text': dataset_all['tweet_text'][0:support_length],
-            'input_ids': dataset_all['input_ids'][0:support_length],
-            'attention_mask': dataset_all['attention_mask'][0:support_length],
-            'targets': dataset_all['targets'][0:support_length],
-            'task': dataset_all['task'][0:support_length]
-        }
-
-        query = {
-            'tweet_text': dataset_all['tweet_text'][support_length:],
-            'input_ids': dataset_all['input_ids'][support_length:],
-            'attention_mask': dataset_all['attention_mask'][support_length:],
-            'targets': dataset_all['targets'][support_length:],
-            'task': dataset_all['task'][support_length:]
-        }
-
-        return (support, query)
 
     def train_protomaml(self, data_iter_train, criterion):
 
         for epoch in range(self.args.num_epoch) :
-
             # sample batch of tasks
-            for indx_batch_tasks, data_batch_tasks in enumerate(zip(*data_iter_train.values())):
+            for indx_batch_tasks, data_batch_tasks in enumerate(data_iter_train):
 
                 grads_batch_tasks = {}
                 loss_batch_tasks = []
                 acc_batch_tasks = []
                 #for each task/episode
-                for data_per_task in data_batch_tasks:
-                    data_per_task = self.split_supportAndquery(data_per_task)
+                for data_per_task in data_batch_tasks.values():
 
-
-                    support_set, query_set = data_per_task
+                    support_set, query_set = data_per_task['support'],  data_per_task['query']
                     x_support_set, y_support_set = (support_set['input_ids'], support_set['attention_mask']), support_set['targets']
 
                     # copy model
@@ -128,7 +106,7 @@ class ProtoMAML_framework(MAML_framework):
 
     def train_episode(self, criterion, data_per_task, optimizer_task):
 
-        support_set, query_set = data_per_task
+        support_set, query_set = data_per_task['support'],  data_per_task['query']
         x_support_set, y_support_set = (support_set['input_ids'], support_set['attention_mask']), support_set['targets']
         x_query_set, y_query_set = (query_set['input_ids'],query_set['attention_mask']), query_set['targets']
 
