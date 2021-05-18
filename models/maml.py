@@ -70,7 +70,7 @@ class MAML_framework(nn.Module):
 
                 #update initial parameters
 
-                self.update_model_init_parameters(grads_batch_tasks, len(acc_batch_tasks))
+                self.update_model_init_parameters(grads_batch_tasks)
 
                 print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
@@ -106,5 +106,5 @@ class MAML_framework(nn.Module):
 
     def update_model_init_parameters(self, grads_all_tasks, step_g):
         for name, grad in grads_all_tasks.items():
-            self.classifier_init.state_dict()[name] -= grad*self.args.lr_beta*(1.0/step_g)
+            self.classifier_init.state_dict()[name] -= grad*self.args.lr_beta
 
