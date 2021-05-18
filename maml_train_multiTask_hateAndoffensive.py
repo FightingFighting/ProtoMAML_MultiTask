@@ -140,7 +140,7 @@ if __name__ == "__main__":
                         help='the device name')
     # parser.add_argument('--num_episodes', default = 10, type=int,
     #                     help='Number of episodes per epoch')
-    parser.add_argument('--epochs', default = 1, type=int,
+    parser.add_argument('--epochs', default = 50, type=int,
                         help='Number of epoch')
     parser.add_argument('--classifier_epochs', default = 1, type=int,
                         help='Number of epoch')
