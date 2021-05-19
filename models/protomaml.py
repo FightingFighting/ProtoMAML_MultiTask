@@ -73,6 +73,10 @@ class ProtoMAML_framework(MAML_framework):
         
         gradient_data_outer = pd.DataFrame()
         gradient_data_inner = pd.DataFrame()
+        gradient_data_ref_outer_1 = pd.DataFrame()
+        gradient_data_ref_inner_1 = pd.DataFrame()
+        gradient_data_ref_outer_2 = pd.DataFrame()
+        gradient_data_ref_inner_2 = pd.DataFrame()
         
         for epoch in range(self.args.num_epoch) :
             # sample batch of tasks
@@ -86,10 +90,34 @@ class ProtoMAML_framework(MAML_framework):
                 outer_grad_2 = {}
                 inner_grad_1 = {}
                 inner_grad_2 = {}
-                emotion_1 = ""
-                emotion_2 = ""
+                ref_outer_grad_1 = {}
+                ref_inner_grad_1 = {}
+                ref_outer_grad_2 = {}
+                ref_inner_grad_2 = {}
+                emotion_1 = list(data_batch_tasks.keys())[0]
+                emotion_2 = list(data_batch_tasks.keys())[1]
                 
                 assert len(data_batch_tasks.values()) == 2 # gradient conflict code assumes two datasets are used
+                
+                # Compute gradients for random batch of each dataset
+                # This is not used to update the model, only as a reference measure
+                ref_batch = next(iter(data_iter_train))
+                first = True
+                for data_per_task in ref_batch.values():
+                    support_set, query_set = data_per_task['support'],  data_per_task['query']
+                    x_support_set, y_support_set = (support_set['input_ids'], support_set['attention_mask']), support_set['targets']
+                    self.classifier_episode = self.generate_newModel_instance(x_support_set, y_support_set)
+                    optimizer_task = optim.SGD(filter(lambda p: p.requires_grad, self.classifier_episode.parameters()), lr=self.args.lr_alpha)
+                    outer_grad, _, _, inner_grad = self.train_episode(criterion, data_per_task, optimizer_task)
+                    if first:
+                        for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
+                            ref_outer_grad_1[name] = outer_grad[ind].detach().cpu()
+                        ref_inner_grad_1 = inner_grad
+                        first = False
+                    else:
+                        for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
+                            ref_outer_grad_2[name] = outer_grad[ind].detach().cpu()
+                        ref_inner_grad_2 = inner_grad
 
                 #for each task/episode
                 for data_per_task in data_batch_tasks.values():
@@ -111,13 +139,11 @@ class ProtoMAML_framework(MAML_framework):
                     # accumulate grads_query
                     if grads_batch_tasks == {}:
                         inner_grad_1 = inner_grad
-                        emotion_1 = support_set['task'][0]
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] = grads_query[ind]
                             outer_grad_1[name] = grads_query[ind].detach().cpu()
                     else:
                         inner_grad_2 = inner_grad
-                        emotion_2 = support_set['task'][0]
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] += grads_query[ind]
                             outer_grad_2[name] = grads_query[ind].detach().cpu()
@@ -128,17 +154,31 @@ class ProtoMAML_framework(MAML_framework):
                 # compute gradient similarity
                 episode_similarity_outer = {}
                 episode_similarity_inner = {}
+                ref_1_similarity_outer = {}
+                ref_1_similarity_inner = {}
+                ref_2_similarity_outer = {}
+                ref_2_similarity_inner = {}
                 for name, p in self.classifier_episode.named_parameters():
-                    sim_outer = 1 - cosine(outer_grad_1[name].flatten(), outer_grad_2[name].flatten())
-                    episode_similarity_outer[name] = sim_outer
-                    sim_inner = 1 - cosine(inner_grad_1[name].flatten(), inner_grad_2[name].flatten())
-                    episode_similarity_inner[name] = sim_inner
+                    episode_similarity_outer[name] = 1 - cosine(outer_grad_1[name].flatten(), outer_grad_2[name].flatten())
+                    episode_similarity_inner[name] = 1 - cosine(inner_grad_1[name].flatten(), inner_grad_2[name].flatten())
+                    ref_1_similarity_outer[name] = 1 - cosine(outer_grad_1[name].flatten(), ref_outer_grad_1[name].flatten())
+                    ref_1_similarity_inner[name] = 1 - cosine(inner_grad_1[name].flatten(), ref_inner_grad_1[name].flatten())
+                    ref_2_similarity_outer[name] = 1 - cosine(outer_grad_2[name].flatten(), ref_outer_grad_2[name].flatten())
+                    ref_2_similarity_inner[name] = 1 - cosine(inner_grad_2[name].flatten(), ref_inner_grad_2[name].flatten())
                 gradient_data_outer = gradient_data_outer.append(episode_similarity_outer, ignore_index=True)
                 gradient_data_inner = gradient_data_inner.append(episode_similarity_inner, ignore_index=True)
+                gradient_data_ref_outer_1 = gradient_data_ref_outer_1.append(ref_1_similarity_outer, ignore_index=True)
+                gradient_data_ref_inner_1 = gradient_data_ref_inner_1.append(ref_1_similarity_inner, ignore_index=True)
+                gradient_data_ref_outer_2 = gradient_data_ref_outer_2.append(ref_2_similarity_outer, ignore_index=True)
+                gradient_data_ref_inner_2 = gradient_data_ref_inner_2.append(ref_2_similarity_inner, ignore_index=True)
                 save_dir = os.path.join("gradient_similarities", emotion_1 + "_" + emotion_2)
                 os.makedirs(save_dir, exist_ok=True)
                 gradient_data_outer.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_2 + "_outer.csv"))
                 gradient_data_inner.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_2 + "_inner.csv"))
+                gradient_data_ref_outer_1.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_1 + "_outer.csv"))
+                gradient_data_ref_inner_1.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_1 + "_inner.csv"))
+                gradient_data_ref_outer_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_outer.csv"))
+                gradient_data_ref_inner_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_inner.csv"))
 
                 print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
