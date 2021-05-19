@@ -179,6 +179,12 @@ class ProtoMAML_framework(MAML_framework):
                 gradient_data_ref_inner_1.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_1 + "_inner.csv"))
                 gradient_data_ref_outer_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_outer.csv"))
                 gradient_data_ref_inner_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_inner.csv"))
+                
+                # save checkpoint
+                if indx_batch_tasks % 10 == 0:
+                    model_dir = "trained_models"
+                    os.makedirs(model_dir, exist_ok=True)
+                    torch.save({"args": self.args, "epoch": epoch, "step": indx_batch_tasks, "state_dict": self.state_dict}, os.path.join(model_dir, emotion_1 + "_" + emotion_2 + ".pt"))
 
                 print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
