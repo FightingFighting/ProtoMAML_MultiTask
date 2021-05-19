@@ -2,9 +2,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import pandas as pd
+import sys
 
 from copy import deepcopy
 from .maml import MAML_framework
+from scipy.spatial.distance import cosine
 
 class ProtoMAML_framework(MAML_framework):
     def __init__(self, args, classifier):
@@ -66,7 +69,10 @@ class ProtoMAML_framework(MAML_framework):
 
 
     def train_protomaml(self, data_iter_train, criterion):
-
+        
+        gradient_data_outer = pd.DataFrame()
+        gradient_data_inner = pd.DataFrame()
+        
         for epoch in range(self.args.num_epoch) :
             # sample batch of tasks
             for indx_batch_tasks, data_batch_tasks in enumerate(data_iter_train):
@@ -74,6 +80,14 @@ class ProtoMAML_framework(MAML_framework):
                 grads_batch_tasks = {}
                 loss_batch_tasks = []
                 acc_batch_tasks = []
+                
+                outer_grad_1 = {}
+                outer_grad_2 = {}
+                inner_grad_1 = {}
+                inner_grad_2 = {}
+                
+                assert len(data_batch_tasks.values()) == 2 # gradient conflict code assumes two datasets are used
+
                 #for each task/episode
                 for data_per_task in data_batch_tasks.values():
 
@@ -85,7 +99,7 @@ class ProtoMAML_framework(MAML_framework):
                     optimizer_task = optim.SGD(filter(lambda p: p.requires_grad, self.classifier_episode.parameters()), lr=self.args.lr_alpha)
 
                     # train episode
-                    grads_query, loss_query, accuracy_query = self.train_episode(criterion, data_per_task, optimizer_task)
+                    grads_query, loss_query, accuracy_query, inner_grad = self.train_episode(criterion, data_per_task, optimizer_task)
 
                     # accumulate loss_query and acc
                     loss_batch_tasks.append(loss_query)
@@ -93,14 +107,31 @@ class ProtoMAML_framework(MAML_framework):
 
                     # accumulate grads_query
                     if grads_batch_tasks == {}:
+                        inner_grad_1 = inner_grad
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] = grads_query[ind]
+                            outer_grad_1[name] = grads_query[ind].detach().cpu()
                     else:
+                        inner_grad_2 = inner_grad
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] += grads_query[ind]
+                            outer_grad_2[name] = grads_query[ind].detach().cpu()
 
                 #update initial parameters
                 self.update_model_init_parameters(grads_batch_tasks)
+                
+                # compute gradient similarity
+                episode_similarity_outer = {}
+                episode_similarity_inner = {}
+                for name, p in self.classifier_episode.named_parameters():
+                    sim_outer = 1 - cosine(outer_grad_1[name].flatten(), outer_grad_2[name].flatten())
+                    episode_similarity_outer[name] = sim_outer
+                    sim_inner = 1 - cosine(inner_grad_1[name].flatten(), inner_grad_2[name].flatten())
+                    episode_similarity_inner[name] = sim_inner
+                gradient_data_outer = gradient_data_outer.append(episode_similarity_outer, ignore_index=True)
+                gradient_data_outer.to_csv("gradient_data_outer.csv")
+                gradient_data_inner = gradient_data_inner.append(episode_similarity_inner, ignore_index=True)
+                gradient_data_inner.to_csv("gradient_data_inner.csv")
 
                 print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
@@ -109,6 +140,8 @@ class ProtoMAML_framework(MAML_framework):
         support_set, query_set = data_per_task['support'],  data_per_task['query']
         x_support_set, y_support_set = (support_set['input_ids'], support_set['attention_mask']), support_set['targets']
         x_query_set, y_query_set = (query_set['input_ids'],query_set['attention_mask']), query_set['targets']
+        
+        inner_grad = {}
 
         for i in range(self.args.train_step_per_episode):
             preds_support = self.classifier_episode(*x_support_set)
@@ -116,6 +149,14 @@ class ProtoMAML_framework(MAML_framework):
 
             optimizer_task.zero_grad()
             loss_support.backward()
+            
+            # Accumulate gradients
+            for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
+                if name not in inner_grad:
+                    inner_grad[name] = para.grad.detach().cpu()
+                else:
+                    inner_grad[name] += para.grad.detach().cpu()
+            
             optimizer_task.step()
 
         #generate loss for query set
@@ -127,4 +168,4 @@ class ProtoMAML_framework(MAML_framework):
         optimizer_task.zero_grad()
         grads_query = torch.autograd.grad(loss_query, filter(lambda p: p.requires_grad, self.classifier_episode.parameters()))
 
-        return grads_query, loss_query.cpu().detach().numpy(), accuracy_query.cpu().detach().numpy()
+        return grads_query, loss_query.cpu().detach().numpy(), accuracy_query.cpu().detach().numpy(), inner_grad
