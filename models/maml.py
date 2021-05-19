@@ -104,7 +104,7 @@ class MAML_framework(nn.Module):
         return grads_query, loss_query.cpu().detach().numpy(), accuracy_query.cpu().detach().numpy()
 
 
-    def update_model_init_parameters(self, grads_all_tasks, step_g):
+    def update_model_init_parameters(self, grads_all_tasks):
         for name, grad in grads_all_tasks.items():
             self.classifier_init.state_dict()[name] -= grad*self.args.lr_beta
 
