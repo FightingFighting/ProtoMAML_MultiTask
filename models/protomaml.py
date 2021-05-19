@@ -4,6 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import pandas as pd
 import sys
+import os
 
 from copy import deepcopy
 from .maml import MAML_framework
@@ -85,6 +86,8 @@ class ProtoMAML_framework(MAML_framework):
                 outer_grad_2 = {}
                 inner_grad_1 = {}
                 inner_grad_2 = {}
+                emotion_1 = ""
+                emotion_2 = ""
                 
                 assert len(data_batch_tasks.values()) == 2 # gradient conflict code assumes two datasets are used
 
@@ -108,11 +111,13 @@ class ProtoMAML_framework(MAML_framework):
                     # accumulate grads_query
                     if grads_batch_tasks == {}:
                         inner_grad_1 = inner_grad
+                        emotion_1 = support_set['task'][0]
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] = grads_query[ind]
                             outer_grad_1[name] = grads_query[ind].detach().cpu()
                     else:
                         inner_grad_2 = inner_grad
+                        emotion_2 = support_set['task'][0]
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] += grads_query[ind]
                             outer_grad_2[name] = grads_query[ind].detach().cpu()
@@ -129,9 +134,11 @@ class ProtoMAML_framework(MAML_framework):
                     sim_inner = 1 - cosine(inner_grad_1[name].flatten(), inner_grad_2[name].flatten())
                     episode_similarity_inner[name] = sim_inner
                 gradient_data_outer = gradient_data_outer.append(episode_similarity_outer, ignore_index=True)
-                gradient_data_outer.to_csv("gradient_data_outer.csv")
                 gradient_data_inner = gradient_data_inner.append(episode_similarity_inner, ignore_index=True)
-                gradient_data_inner.to_csv("gradient_data_inner.csv")
+                save_dir = os.path.join("gradient_similarities", emotion_1 + "_" + emotion_2)
+                os.makedirs(save_dir, exist_ok=True)
+                gradient_data_outer.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_2 + "_outer.csv"))
+                gradient_data_inner.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_2 + "_inner.csv"))
 
                 print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
 
