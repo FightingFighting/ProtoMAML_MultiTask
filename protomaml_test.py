@@ -49,7 +49,7 @@ if __name__ == "__main__":
                         help='Number of class')
     parser.add_argument('--lr_alpha', default = 0.001, type=float,
                         help='learning rate')
-    parser.add_argument('--lr_beta', default = 0.001, type=float,
+    parser.add_argument('--lr_beta', default = 0.0001, type=float,
                         help='learning rate')
     parser.add_argument('--train_step_per_episode', default = 1, type=int,
                         help='the dim of hidden layer in the encoder')
