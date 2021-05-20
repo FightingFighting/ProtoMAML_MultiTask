@@ -71,7 +71,7 @@ class ProtoMAML_framework(MAML_framework):
 
     def train_protomaml(self, data_iter_train, criterion):
         
-        param_groups = []
+        '''param_groups = []
         for name, _ in self.classifier_init.named_parameters():
             param_groups.append(name)
         gradient_data_outer = pd.DataFrame(columns = param_groups)
@@ -79,7 +79,8 @@ class ProtoMAML_framework(MAML_framework):
         gradient_data_ref_outer_1 = pd.DataFrame(columns = param_groups)
         gradient_data_ref_inner_1 = pd.DataFrame(columns = param_groups)
         gradient_data_ref_outer_2 = pd.DataFrame(columns = param_groups)
-        gradient_data_ref_inner_2 = pd.DataFrame(columns = param_groups)
+        gradient_data_ref_inner_2 = pd.DataFrame(columns = param_groups)'''
+        grad_sim = pd.DataFrame(columns = ["sim_1_1", "sim_1_2"])
         
         for epoch in range(self.args.num_epoch) :
             # sample batch of tasks
@@ -91,12 +92,12 @@ class ProtoMAML_framework(MAML_framework):
                 
                 outer_grad_1 = []
                 outer_grad_2 = []
-                inner_grad_1 = []
+                '''inner_grad_1 = []
                 inner_grad_2 = []
                 ref_outer_grad_1 = []
                 ref_inner_grad_1 = []
                 ref_outer_grad_2 = []
-                ref_inner_grad_2 = []
+                ref_inner_grad_2 = []'''
                 emotion_1 = list(data_batch_tasks.keys())[0]
                 emotion_2 = list(data_batch_tasks.keys())[1]
                 
@@ -112,13 +113,15 @@ class ProtoMAML_framework(MAML_framework):
                     self.classifier_episode = self.generate_newModel_instance(x_support_set, y_support_set)
                     optimizer_task = optim.SGD(filter(lambda p: p.requires_grad, self.classifier_episode.parameters()), lr=self.args.lr_alpha)
                     outer_grad, _, _, inner_grad = self.train_episode(criterion, data_per_task, optimizer_task)
-                    if first:
+                    ref_grad_1 = outer_grad
+                    break
+                    '''if first:
                         ref_outer_grad_1 = outer_grad
                         ref_inner_grad_1 = inner_grad
                         first = False
                     else:
                         ref_outer_grad_2 = outer_grad
-                        ref_inner_grad_2 = inner_grad
+                        ref_inner_grad_2 = inner_grad'''
 
                 #for each task/episode
                 for data_per_task in data_batch_tasks.values():
@@ -139,12 +142,12 @@ class ProtoMAML_framework(MAML_framework):
 
                     # accumulate grads_query
                     if grads_batch_tasks == {}:
-                        inner_grad_1 = inner_grad
+                        #inner_grad_1 = inner_grad
                         outer_grad_1 = grads_query
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] = grads_query[ind]
                     else:
-                        inner_grad_2 = inner_grad
+                        #inner_grad_2 = inner_grad
                         outer_grad_2 = grads_query
                         for ind, (name, para) in enumerate(self.classifier_episode.named_parameters()):
                             grads_batch_tasks[name] += grads_query[ind]
@@ -153,20 +156,32 @@ class ProtoMAML_framework(MAML_framework):
                 self.update_model_init_parameters(grads_batch_tasks)
                 
                 # compute gradient similarity
-                episode_similarity_outer = []
+                '''episode_similarity_outer = []
                 episode_similarity_inner = []
                 ref_1_similarity_outer = []
                 ref_1_similarity_inner = []
                 ref_2_similarity_outer = []
-                ref_2_similarity_inner = []
+                ref_2_similarity_inner = []'''
+                all_grads_1 = torch.empty((0)).to(self.args.device)
+                all_grads_2 = torch.empty((0)).to(self.args.device)
+                all_grads_ref_1 = torch.empty((0)).to(self.args.device)
                 for i in range(len(outer_grad_1)):
-                    episode_similarity_outer.append(1 - cosine(outer_grad_1[i].cpu().flatten(), outer_grad_2[i].cpu().flatten()))
+                    '''episode_similarity_outer.append(1 - cosine(outer_grad_1[i].cpu().flatten(), outer_grad_2[i].cpu().flatten()))
                     episode_similarity_inner.append(1 - cosine(inner_grad_1[i].cpu().flatten(), inner_grad_2[i].cpu().flatten()))
                     ref_1_similarity_outer.append(1 - cosine(outer_grad_1[i].cpu().flatten(), ref_outer_grad_1[i].cpu().flatten()))
                     ref_1_similarity_inner.append(1 - cosine(inner_grad_1[i].cpu().flatten(), ref_inner_grad_1[i].cpu().flatten()))
                     ref_2_similarity_outer.append(1 - cosine(outer_grad_2[i].cpu().flatten(), ref_outer_grad_2[i].cpu().flatten()))
-                    ref_2_similarity_inner.append(1 - cosine(inner_grad_2[i].cpu().flatten(), ref_inner_grad_2[i].cpu().flatten()))
-                index = len(gradient_data_outer)
+                    ref_2_similarity_inner.append(1 - cosine(inner_grad_2[i].cpu().flatten(), ref_inner_grad_2[i].cpu().flatten()))'''
+                    all_grads_1 = torch.cat((all_grads_1, outer_grad_1[i].detach().flatten()))
+                    all_grads_2 = torch.cat((all_grads_2, outer_grad_2[i].detach().flatten()))
+                    all_grads_ref_1 = torch.cat((all_grads_ref_1, ref_grad_1[i].detach().flatten()))
+                sim_1_1 = torch.nn.functional.cosine_similarity(all_grads_1, all_grads_ref_1, 0).item()
+                sim_1_2 = torch.nn.functional.cosine_similarity(all_grads_1, all_grads_2, 0).item()
+                grad_sim.loc[len(grad_sim)] = [sim_1_1, sim_1_2]
+                grad_sim.to_csv("sim_" + emotion_1 + "_" + emotion_2 + ".csv")
+                
+                # save gradient data
+                '''index = len(gradient_data_outer)
                 gradient_data_outer.loc[index] = episode_similarity_outer
                 gradient_data_inner.loc[index] = episode_similarity_inner
                 gradient_data_ref_outer_1.loc[index] = ref_1_similarity_outer
@@ -180,7 +195,7 @@ class ProtoMAML_framework(MAML_framework):
                 gradient_data_ref_outer_1.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_1 + "_outer.csv"))
                 gradient_data_ref_inner_1.to_csv(os.path.join(save_dir, emotion_1 + "_" + emotion_1 + "_inner.csv"))
                 gradient_data_ref_outer_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_outer.csv"))
-                gradient_data_ref_inner_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_inner.csv"))
+                gradient_data_ref_inner_2.to_csv(os.path.join(save_dir, emotion_2 + "_" + emotion_2 + "_inner.csv"))'''
                 
                 # save checkpoint
                 if indx_batch_tasks % 10 == 0:
@@ -188,7 +203,7 @@ class ProtoMAML_framework(MAML_framework):
                     os.makedirs(model_dir, exist_ok=True)
                     torch.save({"args": self.args, "epoch": epoch, "step": indx_batch_tasks, "state_dict": self.state_dict}, os.path.join(model_dir, emotion_1 + "_" + emotion_2 + ".pt"))
 
-                print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks))
+                print("indx_batch_tasks:", indx_batch_tasks," loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks), " similarity:", sim_1_2)
 
     def train_episode(self, criterion, data_per_task, optimizer_task):
 
