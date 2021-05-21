@@ -38,6 +38,33 @@ def to_emotion_hate(ind):
         return "hate"
     else:
         return "non_hate"
+ 
+def to_emotion_fear(ind):
+    if ind == 1 :
+        return "fear"
+    else:
+        return "non_fear"
+
+
+def to_emotion_anger(ind):
+    if ind == 1 :
+        return "anger"
+    else:
+        return "non_anger"
+
+def to_emotion_joy(ind):
+    if ind == 1 :
+        return "joy"
+    else:
+        return "non_joy"
+
+def to_emotion_sadness(ind):
+    if ind == 1 :
+        return "sadness"
+    else:
+        return "non_sadness"
+
+
 
 
 ### define function to clean tweets (remove mentions RT emoji's, emoticons and url's
@@ -136,6 +163,80 @@ def load_olid_data(seed):
     return olid_train, olid_val, olid_test_a
 
 
+
+#READING SemEval data
+def load_semeval_data(convert_to_binary):
+    sem_anger_train = pd.read_csv('data/SemEval/EI-oc-En-anger-train.txt', sep='\t')
+    sem_anger_dev = pd.read_csv('data/SemEval/2018-EI-oc-En-anger-dev.txt', sep='\t')
+    sem_anger_test = pd.read_csv('data/SemEval/2018-EI-oc-En-anger-test-gold.txt', sep='\t')
+
+    sem_fear_train = pd.read_csv('data/SemEval/EI-oc-En-fear-train.txt', sep='\t')
+    sem_fear_dev = pd.read_csv('data/SemEval/2018-EI-oc-En-fear-dev.txt', sep='\t')
+    sem_fear_test = pd.read_csv('data/SemEval/2018-EI-oc-En-fear-test-gold.txt', sep='\t')
+
+    sem_joy_train = pd.read_csv('data/SemEval/EI-oc-En-joy-train.txt', sep='\t')
+    sem_joy_dev = pd.read_csv('data/SemEval/2018-EI-oc-En-joy-dev.txt', sep='\t')
+    sem_joy_test = pd.read_csv('data/SemEval/2018-EI-oc-En-joy-test-gold.txt', sep='\t')
+
+    sem_sad_train = pd.read_csv('data/SemEval/EI-oc-En-sadness-train.txt', sep='\t')
+    sem_sad_dev = pd.read_csv('data/SemEval/2018-EI-oc-En-sadness-dev.txt', sep='\t')
+    sem_sad_test = pd.read_csv('data/SemEval/2018-EI-oc-En-sadness-test-gold.txt', sep='\t')
+
+    sem_emo_train = pd.concat([sem_anger_train.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                  ,sem_fear_train.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                  ,sem_joy_train.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                  ,sem_sad_train.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})])
+
+    sem_emo_dev = pd.concat([sem_anger_dev.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                ,sem_fear_dev.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                ,sem_joy_dev.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                ,sem_sad_dev.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})])
+
+    sem_emo_test = pd.concat([sem_anger_test.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                 ,sem_fear_test.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                 ,sem_joy_test.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})
+                                 ,sem_sad_test.rename(columns={"ID": "id", "Tweet": "tweet", "Affect Dimension": "emotion"})])
+
+    sem_emo_train[['emotion_ind', 'emo_desc']]=sem_emo_train['Intensity Class'].str.split(':', expand=True).apply(pd.to_numeric, errors='ignore')
+
+    sem_emo_dev[['emotion_ind', 'emo_desc']]=sem_emo_dev['Intensity Class'].str.split(':', expand=True).apply(pd.to_numeric, errors='ignore')
+
+    sem_emo_test[['emotion_ind', 'emo_desc']]=sem_emo_test['Intensity Class'].str.split(':', expand=True).apply(pd.to_numeric, errors='ignore')
+
+    if convert_to_binary:
+        sem_emo_train['emotion_ind'] = sem_emo_train['emotion_ind'].apply(to_emotion_ind)
+        sem_emo_dev['emotion_ind'] = sem_emo_dev['emotion_ind'].apply(to_emotion_ind)
+        sem_emo_test['emotion_ind'] = sem_emo_test['emotion_ind'].apply(to_emotion_ind)
+
+
+    sem_emo_train['task'] = sem_emo_train['emotion']
+    sem_emo_dev['task'] = sem_emo_dev['emotion']
+    sem_emo_test['task'] = sem_emo_test['emotion']
+
+    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_joy)
+    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_joy)
+    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_joy)
+
+    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_sadness)
+    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_sadness)
+    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_sadness)
+
+    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_anger)
+    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_anger)
+    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_anger)
+
+    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_fear)
+    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_fear)
+    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_fear)
+
+
+
+
+    return sem_emo_train, sem_emo_dev, sem_emo_test
+
+
+
+
 #READING tweeteval hate data
 def load_tweeteval_data(seed):
     hate_train_text = pd.read_csv('data/tweeteval_hate/train_text.txt', sep='\n', header=None, names=['tweet'], skip_blank_lines=False, quoting=csv.QUOTE_NONE)
@@ -168,12 +269,12 @@ def load_all_data(seed):
     # LOAD DATASETS
     isarc_train, isarc_val, isarc_test = load_isarcasm_data(seed)
     olid_train, olid_val, olid_test = load_olid_data(seed)
-    # sem_emo_train, sem_emo_val, sem_emo_test = load_semeval_data(CONVERT_TO_BINARY)
+    sem_emo_train, sem_emo_val, sem_emo_test = load_semeval_data(CONVERT_TO_BINARY)
     hate_train, hate_val, hate_test = load_tweeteval_data(seed)
 
     ## CONCATENATE ALL DATASETS and clean tweets (remove mentions, emoticons etc)
     train_all = pd.concat([
-                              # sem_emo_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                              sem_emo_train[['tweet', 'emotion', 'emotion_ind', 'task']],
                               olid_train[['tweet', 'emotion', 'emotion_ind', 'task']],
                               isarc_train[['tweet', 'emotion', 'emotion_ind', 'task']],
                               hate_train[['tweet', 'emotion', 'emotion_ind', 'task']]])
@@ -181,14 +282,14 @@ def load_all_data(seed):
 
 
     val_all = pd.concat([
-                             # sem_emo_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                             sem_emo_val[['tweet', 'emotion', 'emotion_ind', 'task']],
                              olid_val[['tweet', 'emotion', 'emotion_ind', 'task']],
                              isarc_val[['tweet', 'emotion', 'emotion_ind', 'task']],
                              hate_val[['tweet', 'emotion', 'emotion_ind', 'task']]])
     val_all.tweet = val_all.tweet.apply(give_emoji_free_text).apply(sanitize)
 
     test_all = pd.concat([
-                             # sem_emo_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                             sem_emo_test[['tweet', 'emotion', 'emotion_ind', 'task']],
                              olid_test[['tweet', 'emotion', 'emotion_ind', 'task']],
                              isarc_test[['tweet', 'emotion', 'emotion_ind', 'task']],
                              hate_test[['tweet', 'emotion', 'emotion_ind', 'task']]])
