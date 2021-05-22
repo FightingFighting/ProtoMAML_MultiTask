@@ -38,32 +38,26 @@ def to_emotion_hate(ind):
         return "hate"
     else:
         return "non_hate"
- 
-def to_emotion_fear(ind):
-    if ind == 1 :
-        return "fear"
-    else:
-        return "non_fear"
 
-
-def to_emotion_anger(ind):
-    if ind == 1 :
-        return "anger"
-    else:
-        return "non_anger"
-
-def to_emotion_joy(ind):
-    if ind == 1 :
-        return "joy"
-    else:
-        return "non_joy"
-
-def to_emotion_sadness(ind):
-    if ind == 1 :
-        return "sadness"
-    else:
-        return "non_sadness"
-
+def to_emotion(inten):
+    if "0" in inten:
+        if "sadness" in inten:
+            return "non_sadness"
+        elif "joy" in inten:
+            return "non_joy"
+        elif "anger" in inten:
+            return "non_anger"
+        elif "fear" in inten:
+            return "non_fear"
+    elif "1" in inten or "2" in inten or "3" in inten:
+        if "sadness" in inten:
+            return "sadness"
+        elif "joy" in inten:
+            return "joy"
+        elif "anger" in inten:
+            return "anger"
+        elif "fear" in inten:
+            return "fear"
 
 
 
@@ -213,21 +207,9 @@ def load_semeval_data(convert_to_binary):
     sem_emo_dev['task'] = sem_emo_dev['emotion']
     sem_emo_test['task'] = sem_emo_test['emotion']
 
-    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_joy)
-    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_joy)
-    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_joy)
-
-    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_sadness)
-    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_sadness)
-    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_sadness)
-
-    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_anger)
-    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_anger)
-    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_anger)
-
-    sem_emo_train['emotion'] = sem_emo_train['emotion_ind'].apply(to_emotion_fear)
-    sem_emo_dev['emotion'] = sem_emo_dev['emotion_ind'].apply(to_emotion_fear)
-    sem_emo_test['emotion'] = sem_emo_test['emotion_ind'].apply(to_emotion_fear)
+    sem_emo_train['emotion'] = sem_emo_train['Intensity Class'].apply(to_emotion)
+    sem_emo_dev['emotion'] = sem_emo_dev['Intensity Class'].apply(to_emotion)
+    sem_emo_test['emotion'] = sem_emo_test['Intensity Class'].apply(to_emotion)
 
 
 
@@ -269,7 +251,7 @@ def load_all_data(seed):
     # LOAD DATASETS
     isarc_train, isarc_val, isarc_test = load_isarcasm_data(seed)
     olid_train, olid_val, olid_test = load_olid_data(seed)
-    sem_emo_train, sem_emo_val, sem_emo_test = load_semeval_data(CONVERT_TO_BINARY)
+    sem_emo_train, sem_emo_val, sem_emo_test = load_semeval_data(True)
     hate_train, hate_val, hate_test = load_tweeteval_data(seed)
 
     ## CONCATENATE ALL DATASETS and clean tweets (remove mentions, emoticons etc)
