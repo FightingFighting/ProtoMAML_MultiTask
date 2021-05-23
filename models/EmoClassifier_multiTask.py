@@ -21,6 +21,27 @@ class EmoClassifier_MulTask(nn.Module):
       self.fc_layer_task1 = nn.Linear(self.encoder.config.hidden_size, n_classes[1])
       self.fc_layer_task2 = nn.Linear(self.encoder.config.hidden_size, n_classes[2])
       self.fc_layer_task3 = nn.Linear(self.encoder.config.hidden_size, n_classes[3])
+    if len(n_classes)==5:
+      self.fc_layer_task0 = nn.Linear(self.encoder.config.hidden_size, n_classes[0])
+      self.fc_layer_task1 = nn.Linear(self.encoder.config.hidden_size, n_classes[1])
+      self.fc_layer_task2 = nn.Linear(self.encoder.config.hidden_size, n_classes[2])
+      self.fc_layer_task3 = nn.Linear(self.encoder.config.hidden_size, n_classes[3])
+      self.fc_layer_task4 = nn.Linear(self.encoder.config.hidden_size, n_classes[4])
+    if len(n_classes)==6:
+      self.fc_layer_task0 = nn.Linear(self.encoder.config.hidden_size, n_classes[0])
+      self.fc_layer_task1 = nn.Linear(self.encoder.config.hidden_size, n_classes[1])
+      self.fc_layer_task2 = nn.Linear(self.encoder.config.hidden_size, n_classes[2])
+      self.fc_layer_task3 = nn.Linear(self.encoder.config.hidden_size, n_classes[3])
+      self.fc_layer_task4 = nn.Linear(self.encoder.config.hidden_size, n_classes[4])
+      self.fc_layer_task5 = nn.Linear(self.encoder.config.hidden_size, n_classes[5])
+    if len(n_classes)==7:
+      self.fc_layer_task0 = nn.Linear(self.encoder.config.hidden_size, n_classes[0])
+      self.fc_layer_task1 = nn.Linear(self.encoder.config.hidden_size, n_classes[1])
+      self.fc_layer_task2 = nn.Linear(self.encoder.config.hidden_size, n_classes[2])
+      self.fc_layer_task3 = nn.Linear(self.encoder.config.hidden_size, n_classes[3])
+      self.fc_layer_task4 = nn.Linear(self.encoder.config.hidden_size, n_classes[4])
+      self.fc_layer_task5 = nn.Linear(self.encoder.config.hidden_size, n_classes[5])
+      self.fc_layer_task6 = nn.Linear(self.encoder.config.hidden_size, n_classes[6])
 
     self.fc_layer_allTask={}
     for ind, e in enumerate(emotions):
