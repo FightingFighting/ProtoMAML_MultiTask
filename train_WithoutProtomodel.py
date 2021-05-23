@@ -43,10 +43,12 @@ def train_epoch(
     n_examples_all[emo] = 0
 
   model.train()
-  max_train_step_perEpoch =  min([len(loader) for loader in data_loader.values()])
-
-  for train_step in range(max_train_step_perEpoch):
-    print(f"train_step: {train_step}/{max_train_step_perEpoch}")
+  max_train_step_perEpoch =  max([len(loader) for loader in data_loader.values()])
+  min_train_step_perEpoch =  min([len(loader) for loader in data_loader.values()])
+  train_step_perEpoch = (max_train_step_perEpoch + min_train_step_perEpoch) / 2.0
+  
+  for train_step in range(train_step_perEpoch):
+    print(f"train_step: {train_step}/{train_step_perEpoch}")
     # read one batch data from all tasks
     sample_batch_alltasks={}
     gradient_allTasks={}
@@ -55,9 +57,9 @@ def train_epoch(
     for task_name, task_loader_iter in data_loader_iter.items():
       gradient_allTasks[task_name] = {}
       gradient_contact_allTasks[task_name] = {
-        "all_model": torch.tensor([]).to(args.device),
-        "encoder":torch.tensor([]).to(args.device),
-        "fc_layer":torch.tensor([]).to(args.device)
+        "all_model": torch.tensor([]).to("cpu"),
+        "encoder":torch.tensor([]).to("cpu"),
+        "fc_layer":torch.tensor([]).to("cpu")
       }
       try:
         sample_batch = next(task_loader_iter)
@@ -126,16 +128,16 @@ def train_epoch(
       for t_n, gs in gradient_allTasks.items():
         for g_n, g in gs.items():
           if "fc_layer" in g_n:
-            gradient_contact_allTasks[t_n]["fc_layer"] = torch.cat((gradient_contact_allTasks[t_n]["fc_layer"],gradient_allTasks[t_n][g_n].flatten()))
+            gradient_contact_allTasks[t_n]["fc_layer"] = torch.cat((gradient_contact_allTasks[t_n]["fc_layer"],gradient_allTasks[t_n][g_n].cpu().flatten()))
           else:
-            gradient_contact_allTasks[t_n]["encoder"] = torch.cat((gradient_contact_allTasks[t_n]["encoder"],gradient_allTasks[t_n][g_n].flatten()))
+            gradient_contact_allTasks[t_n]["encoder"] = torch.cat((gradient_contact_allTasks[t_n]["encoder"],gradient_allTasks[t_n][g_n].cpu().flatten()))
 
-          gradient_contact_allTasks[t_n]["all_model"] = torch.cat((gradient_contact_allTasks[t_n]["all_model"],gradient_allTasks[t_n][g_n].flatten()))
+          gradient_contact_allTasks[t_n]["all_model"] = torch.cat((gradient_contact_allTasks[t_n]["all_model"],gradient_allTasks[t_n][g_n].cpu().flatten()))
 
       #calculate cos similarity
       for m in ["all_model","encoder","fc_layer"]:
         for e1, e2 in itertools.combinations(gradient_contact_allTasks.keys(), 2):
-          s =  1 - cosine(gradient_contact_allTasks[e1][m].cpu().numpy(), gradient_contact_allTasks[e2][m].cpu().numpy())
+          s =  1 - cosine(gradient_contact_allTasks[e1][m].numpy(), gradient_contact_allTasks[e2][m].numpy())
           model.similarity[e1+"-"+e2][m].append(s)
 
 
@@ -363,11 +365,11 @@ if __name__ == '__main__':
 
   parser.add_argument('--max_len', type=int, default=180, help='Maximum input length.')
   parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training.')
-  parser.add_argument('--emotion', default="joy&sadness",
+  parser.add_argument('--emotion', default='offensive&sarcasm',
                       choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'],
                       help='Emotion to be classified.')
 
-  parser.add_argument('--epochs', type=int, default=1, help='Number of epochs to train for.')
+  parser.add_argument('--epochs', type=int, default=50, help='Number of epochs to train for.')
   parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate.')
   parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
 
