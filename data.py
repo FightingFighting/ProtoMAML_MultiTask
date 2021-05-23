@@ -281,15 +281,15 @@ def load_all_data(seed):
         ## PRINT COUNTS PER EMOTION
         print('*' * 20)
         print('train_all')
-        print(train_all['emotion'].value_counts())
+        print(train_all['task'].value_counts())
 
         print('*' * 20)
         print('val_all')
-        print(val_all['emotion'].value_counts())
+        print(val_all['task'].value_counts())
 
         print('*' * 20)
         print('test_all')
-        print(test_all['emotion'].value_counts())
+        print(test_all['task'].value_counts())
 
     # RETURN ALL DATA
     return train_all, val_all, test_all
