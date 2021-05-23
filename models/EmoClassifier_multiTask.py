@@ -7,7 +7,8 @@ class EmoClassifier_MulTask(nn.Module):
     super(EmoClassifier_MulTask, self).__init__()
     self.encoder = RobertaModel.from_pretrained(pretrained_model_name)
     self.drop = nn.Dropout(p=0.3)
-
+    if len(n_classes)==1:
+      self.fc_layer_task0 = nn.Linear(self.encoder.config.hidden_size, n_classes[0])
     if len(n_classes)==2:
       self.fc_layer_task0 = nn.Linear(self.encoder.config.hidden_size, n_classes[0])
       self.fc_layer_task1 = nn.Linear(self.encoder.config.hidden_size, n_classes[1])
