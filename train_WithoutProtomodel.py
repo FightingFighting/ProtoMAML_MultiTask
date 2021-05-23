@@ -365,9 +365,9 @@ if __name__ == '__main__':
 
   parser.add_argument('--max_len', type=int, default=180, help='Maximum input length.')
   parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training.')
-  parser.add_argument('--emotion', default='offensive&sarcasm',
-                      choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'],
-                      help='Emotion to be classified.')
+  parser.add_argument('--emotion', default='offensive&sarcasm&fear&anger&joy&sadness&hate',
+                      help="Emotion to be classified. it can be chosen from ['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'] or combination of them")
+
 
   parser.add_argument('--epochs', type=int, default=50, help='Number of epochs to train for.')
   parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate.')
