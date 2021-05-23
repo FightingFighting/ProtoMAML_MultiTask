@@ -45,7 +45,7 @@ def train_epoch(
   model.train()
   max_train_step_perEpoch =  max([len(loader) for loader in data_loader.values()])
   min_train_step_perEpoch =  min([len(loader) for loader in data_loader.values()])
-  train_step_perEpoch = (max_train_step_perEpoch + min_train_step_perEpoch) / 2.0
+  train_step_perEpoch = int((max_train_step_perEpoch + min_train_step_perEpoch) / 2.0)
   
   for train_step in range(train_step_perEpoch):
     print(f"train_step: {train_step}/{train_step_perEpoch}")
