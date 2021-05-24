@@ -14,7 +14,7 @@ class EmoClassifier(nn.Module):
       input_ids=input_ids,
       attention_mask=attention_mask
     )
-    pooled_output = output_tuple.pooler_output
-    output = self.drop(pooled_output)
-    output = self.fc_layer(output)
-    return output
+    pooled_encodings = output_tuple.pooler_output
+    #pooled_encodings = self.drop(pooled_encodings)
+    output = self.fc_layer(pooled_encodings)
+    return output, pooled_encodings

@@ -49,10 +49,10 @@ if __name__ == "__main__":
                         help='Number of class')
     parser.add_argument('--lr_alpha', default = 0.001, type=float,
                         help='learning rate')
-    parser.add_argument('--lr_beta', default = 0.0001, type=float,
+    parser.add_argument('--lr_beta', default = 0.001, type=float, # 0.001 for debugging
                         help='learning rate')
     parser.add_argument('--train_step_per_episode', default = 1, type=int,
-                        help='the dim of hidden layer in the encoder')
+                        help='number of inner loop steps to take')
     parser.add_argument('--bert_name', default = 'roberta-base', type=str,
                         help='the bert name')
     parser.add_argument('--max_len', default = 180, type=int,
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
 
-    parser.add_argument('--num_sample_perclass', type=int, default=20, help='')
+    parser.add_argument('--num_sample_perclass', type=int, default=12, help='')
     parser.add_argument('--emotion', default="hate&offensive",
                         #choices=['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'],
                         help='Emotion to be classified.')
