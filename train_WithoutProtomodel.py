@@ -124,7 +124,7 @@ def train_epoch(
       model.state_dict()[name_p] -= grad_mean*optimizer.defaults["lr"]
 
 
-    if train_step %10 == 0 and len(data_loader_iter.keys())>=0:
+    if train_step %10 == 0 and len(data_loader_iter.keys())>=2:
       for t_n, gs in gradient_allTasks.items():
         for g_n, g in gs.items():
           if "fc_layer" in g_n:
