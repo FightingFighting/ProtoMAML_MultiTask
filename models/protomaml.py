@@ -21,10 +21,7 @@ class ProtoMAML_framework(MAML_framework):
         :param y_support_set: (batch,)
         :return:
         """
-        #self.classifier_init.eval()
         all_prototypes_mix = self.classifier_init.encoder(*x_support_set).pooler_output #(batch_size,dim_encoder_hidden)
-        #all_prototypes_mix = all_prototypes_mix.detach()
-        #self.classifier_init.train()
 
         all_prototypes = []
         y_support_set_numpy = y_support_set.cpu().numpy()
@@ -52,13 +49,10 @@ class ProtoMAML_framework(MAML_framework):
                 loss_batch_tasks = []
                 acc_batch_tasks = []
                 
-                emotion_1 = list(data_batch_tasks.keys())[0]
-                emotion_2 = list(data_batch_tasks.keys())[1]
+                emotions = list(data_batch_tasks.keys())
                 task_grads_k = []
                 task_grads_init = []
                 task_grads_both = []
-                
-                assert len(data_batch_tasks.values()) == 2 # gradient conflict code assumes two datasets are used
                 
                 #for each task/episode
                 for t, data_per_task in enumerate(data_batch_tasks.values()):
@@ -80,26 +74,33 @@ class ProtoMAML_framework(MAML_framework):
                     # STEP 4 initialize final layer using prototypes
                     #classifier_episode.fc_layer.weight.data = c_prototypes.detach() * 2.0 #(num_class, dim_encoder_hidden)
                     #classifier_episode.fc_layer.bias.data = -1.0 * c_prototypes.detach().norm(dim=1)**2 #(num_class,)
-                    fc_weight = prototypes.detach()*2.0 #(num_class, dim_encoder_hidden)
-                    fc_bias = -1.0*prototypes.detach().norm(dim=1)**2 #(num_class,)
+                    p_weight = 2 * prototypes #(num_class, dim_encoder_hidden)
+                    p_bias = -prototypes.norm(dim=1)**2 #(num_class,)
+                    fc_weight = p_weight.detach()
+                    fc_bias = p_bias.detach()
                     
                     # STEP 5 train episode
                     x_support_set, y_support_set = (support_set['input_ids'], support_set['attention_mask']), support_set['targets']
-                    optimizer_task = optim.SGD(self.classifier_episode.parameters(), lr=self.args.lr_alpha)
+                    all_params_inner = list(self.classifier_episode.parameters()) + [fc_weight, fc_bias]
+                    optimizer_task = optim.SGD(all_params_inner, lr=self.args.lr_alpha)
                     for i in range(self.args.train_step_per_episode):
-                        #preds_support, _ = self.classifier_episode(*x_support_set) # TODO manual fc?
                         encoded_support = self.classifier_episode.encoder(*x_support_set).pooler_output
+                        #print(encoded_support.mean().item(), encoded_support.std().item())
                         preds_support = encoded_support @ fc_weight.T + fc_bias
+                        #print(fc_weight.mean().item(), fc_weight.std().item())
+                        #print(fc_bias.mean().item(), fc_bias.std().item())
+                        #print(preds_support)
                         loss_support = criterion(preds_support, y_support_set)
                         optimizer_task.zero_grad()
                         loss_support.backward()
                         optimizer_task.step()
+                        #print(loss_support.detach().item())
+                        #print("")
+                    #sys.exit()
                     
                     # STEP 6 reintroduce prototypes to computation graph
-                    p_weight = prototypes*2.0 #(num_class, dim_encoder_hidden)
-                    p_bias = -1.0*prototypes.norm(dim=1)**2 #(num_class,)
-                    fc_weight = p_weight + (self.classifier_episode.fc_layer.weight.data - p_weight).detach()
-                    fc_bias = p_bias + (self.classifier_episode.fc_layer.bias.data - p_bias).detach()
+                    fc_weight = p_weight + (fc_weight - p_weight).detach()
+                    fc_bias = p_bias + (fc_bias - p_bias).detach()
                     
                     # STEP 7 get gradients from query set
                     x_query_set, y_query_set = (query_set['input_ids'],query_set['attention_mask']), query_set['targets']
@@ -145,11 +146,11 @@ class ProtoMAML_framework(MAML_framework):
                     task_grads_both.append(torch.cat(grads_both))
                 
                 # Outer loop update
-                optimizer_meta.step()
-                optimizer_meta.zero_grad()
+                #optimizer_meta.step()
+                #optimizer_meta.zero_grad()
                 for param in self.classifier_init.encoder.parameters():
-                    #if param.requires_grad:
-                    #    param.data -= param.grad * self.args.lr_beta
+                    if param.requires_grad:
+                        param.data -= param.grad * self.args.lr_beta
                     param.grad = None
                 
                 # Compute and save similarities
@@ -160,7 +161,8 @@ class ProtoMAML_framework(MAML_framework):
                 sim_both = torch.nn.functional.cosine_similarity(task_grads_both[0], task_grads_both[1], 0).item()
                 sims["sim_both"] = sim_both
                 grad_sim = grad_sim.append(sims, ignore_index=True)
-                grad_sim.to_csv("sim_" + emotion_1 + "_" + emotion_2 + ".csv")
+                emotion_string = "_".join(emotions)
+                grad_sim.to_csv("sim_" + emotion_string + ".csv")
                 
                 '''for t in [0, 1]:
                     print(f"k_{t}: {np.linalg.norm(task_grads_k[t].cpu())}")
@@ -171,6 +173,6 @@ class ProtoMAML_framework(MAML_framework):
                 if indx_batch_tasks % 10 == 0:
                     model_dir = "trained_models"
                     os.makedirs(model_dir, exist_ok=True)
-                    torch.save({"args": self.args, "epoch": epoch, "step": indx_batch_tasks, "state_dict": self.state_dict}, os.path.join(model_dir, emotion_1 + "_" + emotion_2 + ".pt"))
+                    torch.save({"args": self.args, "epoch": epoch, "step": indx_batch_tasks, "state_dict": self.state_dict}, os.path.join(model_dir, emotion_string + ".pt"))
 
                 print("indx_batch_tasks:", indx_batch_tasks, " loss:", np.mean(loss_batch_tasks), " acc:", np.mean(acc_batch_tasks), " similarity:", sim_both)
