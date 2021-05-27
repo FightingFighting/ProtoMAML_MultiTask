@@ -240,42 +240,136 @@ def load_tweeteval_data(seed):
     hate_val['emotion'] = hate_val['emotion_ind'].apply(to_emotion_hate)
     hate_test['emotion'] = hate_test['emotion_ind'].apply(to_emotion_hate)
 
-
     hate_train['task'] = 'hate'
     hate_val['task'] = 'hate'
     hate_test['task'] = 'hate'
 
     return hate_train, hate_val, hate_test
 
-def load_all_data(seed):
+def load_all_data(seed, balance_datasets):
     # LOAD DATASETS
     isarc_train, isarc_val, isarc_test = load_isarcasm_data(seed)
     olid_train, olid_val, olid_test = load_olid_data(seed)
     sem_emo_train, sem_emo_val, sem_emo_test = load_semeval_data(True)
     hate_train, hate_val, hate_test = load_tweeteval_data(seed)
 
-    ## CONCATENATE ALL DATASETS and clean tweets (remove mentions, emoticons etc)
-    train_all = pd.concat([
-                              sem_emo_train[['tweet', 'emotion', 'emotion_ind', 'task']],
-                              olid_train[['tweet', 'emotion', 'emotion_ind', 'task']],
-                              isarc_train[['tweet', 'emotion', 'emotion_ind', 'task']],
-                              hate_train[['tweet', 'emotion', 'emotion_ind', 'task']]])
-    train_all.tweet = train_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+    if balance_datasets:
+        len_record = []
+        len_record.append(len(isarc_train))
+        len_record.append(len(olid_train))
+        len_record.append(len(hate_train))
+        len_record.append(len(sem_emo_train[sem_emo_train["task"]=="joy"]))
+        len_record.append(len(sem_emo_train[sem_emo_train["task"]=="sadness"]))
+        len_record.append(len(sem_emo_train[sem_emo_train["task"]=="anger"]))
+        len_record.append(len(sem_emo_train[sem_emo_train["task"]=="fear"]))
+
+        min_len = min(len_record)
+        hate_train=hate_train.sample(n=min_len ,random_state=seed)
+        isarc_train=isarc_train.sample(n=min_len ,random_state=seed)
+        olid_train=olid_train.sample(n=min_len ,random_state=seed)
+
+        sadness_train=sem_emo_train[sem_emo_train["task"]=="sadness"].sample(n=min_len ,random_state=seed)
+        joy_train=sem_emo_train[sem_emo_train["task"]=="joy"].sample(n=min_len ,random_state=seed)
+        anger_train=sem_emo_train[sem_emo_train["task"]=="anger"].sample(n=min_len ,random_state=seed)
+        fear_train=sem_emo_train[sem_emo_train["task"]=="fear"].sample(n=min_len ,random_state=seed)
 
 
-    val_all = pd.concat([
-                             sem_emo_val[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             olid_val[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             isarc_val[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             hate_val[['tweet', 'emotion', 'emotion_ind', 'task']]])
-    val_all.tweet = val_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+        len_record = []
+        len_record.append(len(isarc_val))
+        len_record.append(len(olid_val))
+        len_record.append(len(hate_val))
+        len_record.append(len(sem_emo_val[sem_emo_val["task"]=="joy"]))
+        len_record.append(len(sem_emo_val[sem_emo_val["task"]=="sadness"]))
+        len_record.append(len(sem_emo_val[sem_emo_val["task"]=="anger"]))
+        len_record.append(len(sem_emo_val[sem_emo_val["task"]=="fear"]))
 
-    test_all = pd.concat([
-                             sem_emo_test[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             olid_test[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             isarc_test[['tweet', 'emotion', 'emotion_ind', 'task']],
-                             hate_test[['tweet', 'emotion', 'emotion_ind', 'task']]])
-    test_all.tweet = test_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+        min_len = min(len_record)
+        hate_val=hate_val.sample(n=min_len ,random_state=seed)
+        isarc_val=isarc_val.sample(n=min_len ,random_state=seed)
+        olid_val=olid_val.sample(n=min_len ,random_state=seed)
+
+        sadness_val=sem_emo_val[sem_emo_val["task"]=="sadness"].sample(n=min_len ,random_state=seed)
+        joy_val=sem_emo_val[sem_emo_val["task"]=="joy"].sample(n=min_len ,random_state=seed)
+        anger_val=sem_emo_val[sem_emo_val["task"]=="anger"].sample(n=min_len ,random_state=seed)
+        fear_val=sem_emo_val[sem_emo_val["task"]=="fear"].sample(n=min_len ,random_state=seed)
+
+
+        len_record = []
+        len_record.append(len(isarc_test))
+        len_record.append(len(olid_test))
+        len_record.append(len(hate_test))
+        len_record.append(len(sem_emo_test[sem_emo_test["task"]=="joy"]))
+        len_record.append(len(sem_emo_test[sem_emo_test["task"]=="sadness"]))
+        len_record.append(len(sem_emo_test[sem_emo_test["task"]=="anger"]))
+        len_record.append(len(sem_emo_test[sem_emo_test["task"]=="fear"]))
+
+        min_len = min(len_record)
+        hate_test=hate_test.sample(n=min_len ,random_state=seed)
+        isarc_test=isarc_test.sample(n=min_len ,random_state=seed)
+        olid_test=olid_test.sample(n=min_len ,random_state=seed)
+
+        sadness_test=sem_emo_test[sem_emo_test["task"]=="sadness"].sample(n=min_len ,random_state=seed)
+        joy_test=sem_emo_test[sem_emo_test["task"]=="joy"].sample(n=min_len ,random_state=seed)
+        anger_test=sem_emo_test[sem_emo_test["task"]=="anger"].sample(n=min_len ,random_state=seed)
+        fear_test=sem_emo_test[sem_emo_test["task"]=="fear"].sample(n=min_len ,random_state=seed)
+
+
+        ## CONCATENATE ALL DATASETS and clean tweets (remove mentions, emoticons etc)
+        train_all = pd.concat([
+                                  sadness_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  joy_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  anger_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  fear_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  olid_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  isarc_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                  hate_train[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        train_all.tweet = train_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+
+
+        val_all = pd.concat([
+                                sadness_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                joy_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                anger_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                fear_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 olid_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 isarc_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 hate_val[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        val_all.tweet = val_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+
+        test_all = pd.concat([
+                                sadness_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                joy_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                anger_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                fear_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 olid_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 isarc_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+                                 hate_test[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        test_all.tweet = test_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+
+    else:
+
+        ## CONCATENATE ALL DATASETS and clean tweets (remove mentions, emoticons etc)
+        train_all = pd.concat([
+            sem_emo_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+            olid_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+            isarc_train[['tweet', 'emotion', 'emotion_ind', 'task']],
+            hate_train[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        train_all.tweet = train_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+
+
+        val_all = pd.concat([
+            sem_emo_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+            olid_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+            isarc_val[['tweet', 'emotion', 'emotion_ind', 'task']],
+            hate_val[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        val_all.tweet = val_all.tweet.apply(give_emoji_free_text).apply(sanitize)
+
+        test_all = pd.concat([
+            sem_emo_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+            olid_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+            isarc_test[['tweet', 'emotion', 'emotion_ind', 'task']],
+            hate_test[['tweet', 'emotion', 'emotion_ind', 'task']]])
+        test_all.tweet = test_all.tweet.apply(give_emoji_free_text).apply(sanitize)
 
     if not SILENT:
         ## PRINT COUNTS PER EMOTION
@@ -291,14 +385,27 @@ def load_all_data(seed):
         print('test_all')
         print(test_all['task'].value_counts())
 
+        ## PRINT COUNTS PER EMOTION
+        print('+' * 20)
+        print('train_all')
+        print(train_all['emotion'].value_counts())
+
+        print('+' * 20)
+        print('val_all')
+        print(val_all['emotion'].value_counts())
+
+        print('+' * 20)
+        print('test_all')
+        print(test_all['emotion'].value_counts())
+
     # RETURN ALL DATA
     return train_all, val_all, test_all
 
 
 
-def load_emotion_data(emotion, seed):
+def load_emotion_data(emotion, seed, balance_datasets=False):
     # LOAD DATA
-    train_all, val_all, test_all = load_all_data(seed)
+    train_all, val_all, test_all = load_all_data(seed,balance_datasets)
     if emotion == "meta_all":
         return train_all, val_all, test_all
 
@@ -342,7 +449,9 @@ class MetaDataset(Dataset):
                 loaders_length.append(len(loader))
                 class_loader[class_name]=iter(loader)
             self.tasks_dataset_iter[task_name]=class_loader
-        self.max_length = max(loaders_length)
+        # self.max_length = max(loaders_length)
+        self.max_length = min(loaders_length)
+
 
     def __len__(self):
 
