@@ -46,9 +46,10 @@ def train_epoch(
   max_train_step_perEpoch =  max([len(loader) for loader in data_loader.values()])
   min_train_step_perEpoch =  min([len(loader) for loader in data_loader.values()])
   train_step_perEpoch = int((max_train_step_perEpoch + min_train_step_perEpoch) / 2.0)
-  
+
   for train_step in range(train_step_perEpoch):
     print(f"train_step: {train_step}/{train_step_perEpoch}")
+    logging.info(f"train_step: {train_step}/{train_step_perEpoch}")
     # read one batch data from all tasks
     sample_batch_alltasks={}
     gradient_allTasks={}
@@ -120,11 +121,11 @@ def train_epoch(
             grad_mean += gradient_allTasks[emo][name_p]
           except KeyError:
             continue
-      grad_mean /= len(sample_batch_alltasks.keys())
+      # grad_mean /= len(sample_batch_alltasks.keys())
       model.state_dict()[name_p] -= grad_mean*optimizer.defaults["lr"]
 
 
-    if train_step %10 == 0 and len(data_loader_iter.keys())>=2:
+    if train_step %10 == 0 and len(data_loader_iter.keys())>=0:
       for t_n, gs in gradient_allTasks.items():
         for g_n, g in gs.items():
           if "fc_layer" in g_n:
@@ -314,7 +315,7 @@ def main(args):
 
   # Load metalearning data
   tokenizer = RobertaTokenizer.from_pretrained(args.bert_name)
-  train_data, val_data, test_data = load_emotion_data("meta_all", args.seed)
+  train_data, val_data, test_data = load_emotion_data("meta_all", args.seed, args.balance_datasets)
 
   # Determine number of classes
   n_classes=[]
@@ -365,11 +366,10 @@ if __name__ == '__main__':
 
   parser.add_argument('--max_len', type=int, default=180, help='Maximum input length.')
   parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training.')
-  parser.add_argument('--emotion', default='offensive&sarcasm&fear&anger&joy&sadness&hate',
+  parser.add_argument('--emotion', default='sarcasm&fear&anger&joy&sadness&hate&offensive',
                       help="Emotion to be classified. it can be chosen from ['offensive', 'sarcasm', 'fear', 'anger', 'joy', 'sadness', 'hate'] or combination of them")
 
-
-  parser.add_argument('--epochs', type=int, default=50, help='Number of epochs to train for.')
+  parser.add_argument('--epochs', type=int, default=100, help='Number of epochs to train for.')
   parser.add_argument('--lr', type=float, default=2e-5, help='Learning rate.')
   parser.add_argument('--seed', type=int, default=3, help='Seed to use for pytorch and data splits.')
 
@@ -378,6 +378,8 @@ if __name__ == '__main__':
 
   parser.add_argument('--output_dir', default = './output', type=str,
                       help='output path')
+  parser.add_argument('--balance_datasets', default = False, type=bool,
+                      help='make datasets have same samplez')
 
   args = parser.parse_args()
 
